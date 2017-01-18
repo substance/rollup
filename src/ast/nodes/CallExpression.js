@@ -27,6 +27,38 @@ export default class CallExpression extends Node {
 	}
 
 	hasEffects ( scope ) {
+		// the only cases we care about are static augmentations of classes
+		// ```
+		//   Object.defineProperty(A.prototype, ...)
+		//   Object.assign(A.prototype, Mixin)
+		// ```
+		// static variables or functions
+		// ```
+		// A.type = 'figure'
+		// ```
+		// and static function calls with only plain arguments or arguments declared within the module
+		// (Note: maybe it would be better to get to the declaration and leave information there)
+		// ```
+		// class A extends B {}
+		// A.define({ ... })
+		// ```
+		if (scope.isModuleScope) {
+			// detect Object.defineProperty(), Object.defineProperties(), and Object.assign()
+			if (this.callee.type === 'MemberExpression') {
+				if (this.callee.object.name === 'Object') {
+					const propName = this.callee.property.name;
+					if (propName === 'defineProperty' || propName === 'defineProperties' || propName === 'assign') {
+						const proto = this.arguments[0];
+						if (proto.type === 'MemberExpression' && proto.property.name === 'prototype') {
+							return proto.object.declaration.activated;
+						}
+						if (proto.type === 'Identifier') {
+							return proto.declaration.activated;
+						}
+					}
+				}
+			}
+		}
 		return callHasEffects( scope, this.callee, false );
 	}
 
