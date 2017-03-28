@@ -98,7 +98,7 @@ export default class Node {
 		return this.module.code.slice( this.start, this.end );
 	}
 
-	get code() {
-		return this.toString()
+	get code () {
+		return this.toString();
 	}
 }
